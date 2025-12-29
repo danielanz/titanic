@@ -1,6 +1,6 @@
 """
 Data processing script for Titanic dataset.
-Performs cleaning and imputation on train and test datasets.
+Performs cleaning on train and test datasets.
 """
 import pandas as pd
 import numpy as np
@@ -45,56 +45,6 @@ def convert_to_categorical(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def fill_missing_age_train(df: pd.DataFrame) -> pd.DataFrame:
-    """Fill missing Age values using group-based median imputation."""
-    df["Age"] = df["Age"].fillna(
-        df.groupby(["Sex", "Pclass", "Title"], observed=False)["Age"].transform("median")
-    )
-    return df
-
-
-def fill_missing_embarked_train(df: pd.DataFrame) -> pd.DataFrame:
-    """Fill missing Embarked values with mode."""
-    df["Embarked"] = df["Embarked"].fillna(df["Embarked"].mode()[0])
-    return df
-
-
-def fill_missing_age_test(
-    test_df: pd.DataFrame,
-    train_df: pd.DataFrame
-) -> pd.DataFrame:
-    """
-    Fill missing Age values in test data using train data group medians.
-    Falls back to global train median if group not found.
-    """
-    age_group_cols = ["Sex", "Pclass", "Title"]
-    age_medians = train_df.groupby(age_group_cols, observed=False)["Age"].median()
-    global_age_median = train_df["Age"].median()
-    
-    def fill_age(row):
-        if pd.isnull(row["Age"]):
-            group_key = (row["Sex"], row["Pclass"], row["Title"])
-            group_median = age_medians.get(group_key, np.nan)
-            if pd.isnull(group_median):
-                return global_age_median
-            else:
-                return group_median
-        else:
-            return row["Age"]
-    
-    test_df["Age"] = test_df.apply(fill_age, axis=1)
-    return test_df
-
-
-def fill_missing_fare_test(
-    test_df: pd.DataFrame,
-    train_df: pd.DataFrame
-) -> pd.DataFrame:
-    """Fill missing Fare values in test data using train data median."""
-    test_df["Fare"] = test_df["Fare"].fillna(train_df["Fare"].median())
-    return test_df
-
-
 def process_train_data(raw_path: Path) -> pd.DataFrame:
     """Process training data with all cleaning and imputation steps."""
     print("Loading train data...")
@@ -111,12 +61,6 @@ def process_train_data(raw_path: Path) -> pd.DataFrame:
     
     print("Converting to categorical types...")
     train_df = convert_to_categorical(train_df)
-    
-    print("Filling missing Age values...")
-    train_df = fill_missing_age_train(train_df)
-    
-    print("Filling missing Embarked values...")
-    train_df = fill_missing_embarked_train(train_df)
     
     print(f"Train data processed: {train_df.shape}")
     print(f"Missing values:\n{train_df.isnull().sum()}")
@@ -140,12 +84,6 @@ def process_test_data(raw_path: Path, train_df: pd.DataFrame) -> pd.DataFrame:
     
     print("Converting to categorical types...")
     test_df = convert_to_categorical(test_df)
-    
-    print("Filling missing Age values (using train data statistics)...")
-    test_df = fill_missing_age_test(test_df, train_df)
-    
-    print("Filling missing Fare values (using train data median)...")
-    test_df = fill_missing_fare_test(test_df, train_df)
     
     print(f"Test data processed: {test_df.shape}")
     print(f"Missing values:\n{test_df.isnull().sum()}")
