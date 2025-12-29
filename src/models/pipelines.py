@@ -139,7 +139,8 @@ lr_column_transformer = ColumnTransformer(
 # Logistic Regression classifier
 lr_classifier = LogisticRegression(
     max_iter=1000,
-    solver='lbfgs',
+    solver='saga',
+    l1_ratio=0.5,  # Controls regularization: 0=L2, 1=L1, 0<x<1=ElasticNet
     random_state=42
 )
 
@@ -244,16 +245,14 @@ lgbm_column_transformer = ColumnTransformer(
     remainder='drop'
 )
 
-# LightGBM classifier with categorical feature indices
-# After preprocessing: num (3) + bin (4) + cat (4) = indices 7, 8, 9, 10 are categorical
-lgbm_categorical_feature_indices = [7, 8, 9, 10]
-
+# LightGBM classifier
+# Note: categorical_feature doesn't work with sklearn pipelines (ColumnTransformer outputs numpy arrays)
+# The OrdinalEncoder already encodes categoricals as integers which LightGBM handles well
 lgbm_classifier = lgb.LGBMClassifier(
     n_estimators=100,
     random_state=42,
     n_jobs=-1,
-    verbose=-1,
-    categorical_feature=lgbm_categorical_feature_indices
+    verbose=-1
 )
 
 # LightGBM pipeline (Age imputer -> ColumnTransformer -> Classifier)
