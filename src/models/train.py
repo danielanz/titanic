@@ -58,8 +58,8 @@ def load_train_features(features_path: Path) -> tuple[pd.DataFrame, pd.Series]:
         Tuple of (X features DataFrame, y target Series)
     """
     train_df = pd.read_parquet(features_path)
-    y = train_df['Survived']
-    X = train_df.drop(columns=['Survived'])
+    y = train_df['survived']
+    X = train_df.drop(columns=['survived'])
     return X, y
 
 
@@ -146,9 +146,9 @@ def main():
         rf_pipeline, RF_PARAM_GRID, X, y, "random_forest", models_dir
     )
     
-    results['LightGBM'] = train_with_gridsearch(
-        lgbm_pipeline, LGBM_PARAM_GRID, X, y, "lightgbm", models_dir
-    )
+    # results['LightGBM'] = train_with_gridsearch(
+    #     lgbm_pipeline, LGBM_PARAM_GRID, X, y, "lightgbm", models_dir
+    # )
     
     # Print final summary
     print("\n" + "=" * 60)

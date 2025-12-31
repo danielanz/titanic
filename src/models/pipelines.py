@@ -22,9 +22,10 @@ import lightgbm as lgb
 # Column Definitions
 # =============================================================================
 
-NUMERIC_FEATURES = ['Age', 'family_size', 'fare_per_person']
-BINARY_FEATURES = ['Sex', 'has_cabin', 'is_female_or_child', 'is_alone']
-CATEGORICAL_FEATURES = ['Pclass', 'Embarked', 'Title', 'sex_pclass']
+LR_NUMERIC_FEATURES = ['age', 'family_size', 'fare_per_person', 'ticket_frequency']
+TREE_NUMERIC_FEATURES = ['age', 'family_size', 'fare_per_person', 'sibsp', 'parch', 'ticket_frequency']
+BINARY_FEATURES = ['sex', 'has_cabin', 'is_female_or_child', 'is_alone']
+CATEGORICAL_FEATURES = ['pclass', 'embarked', 'title', 'sex_pclass', 'deck']
 
 
 # =============================================================================
@@ -43,52 +44,24 @@ class GroupedMedianAgeImputer(BaseEstimator, TransformerMixin):
     
     def fit(self, X, y=None):
         df = self._to_dataframe(X)
-        self.group_medians_ = df.groupby(['Sex', 'Pclass'])['Age'].median().to_dict()
-        self.global_median_ = df['Age'].median()
+        self.group_medians_ = df.groupby(['sex', 'pclass'])['age'].median().to_dict()
+        self.global_median_ = df['age'].median()
         return self
     
     def transform(self, X):
         df = self._to_dataframe(X).copy()
         
-        mask = df['Age'].isnull()
+        mask = df['age'].isnull()
         for idx in df[mask].index:
-            sex = df.loc[idx, 'Sex']
-            pclass = df.loc[idx, 'Pclass']
+            sex = df.loc[idx, 'sex']
+            pclass = df.loc[idx, 'pclass']
             group_key = (sex, pclass)
             
             median_val = self.group_medians_.get(group_key, self.global_median_)
             if pd.isnull(median_val):
                 median_val = self.global_median_
-            df.loc[idx, 'Age'] = median_val
+            df.loc[idx, 'age'] = median_val
         
-        return df
-    
-    def _to_dataframe(self, X):
-        if isinstance(X, pd.DataFrame):
-            return X
-        raise ValueError("Input must be a pandas DataFrame")
-
-
-class RareTitleGrouper(BaseEstimator, TransformerMixin):
-    """
-    Group infrequent Title values (count < threshold) into 'Other'.
-    """
-    
-    def __init__(self, threshold: int = 15):
-        self.threshold = threshold
-        self.common_titles_ = None
-    
-    def fit(self, X, y=None):
-        df = self._to_dataframe(X)
-        title_counts = df['Title'].value_counts()
-        self.common_titles_ = set(title_counts[title_counts >= self.threshold].index)
-        return self
-    
-    def transform(self, X):
-        df = self._to_dataframe(X).copy()
-        df['Title'] = df['Title'].apply(
-            lambda t: t if t in self.common_titles_ else 'Other'
-        )
         return df
     
     def _to_dataframe(self, X):
@@ -129,7 +102,7 @@ lr_categorical_transformer = Pipeline(steps=[
 # Logistic Regression column transformer
 lr_column_transformer = ColumnTransformer(
     transformers=[
-        ('num', lr_numeric_transformer, NUMERIC_FEATURES),
+        ('num', lr_numeric_transformer, LR_NUMERIC_FEATURES),
         ('bin', lr_binary_transformer, BINARY_FEATURES),
         ('cat', lr_categorical_transformer, CATEGORICAL_FEATURES)
     ],
@@ -147,7 +120,6 @@ lr_classifier = LogisticRegression(
 # Logistic Regression pipeline (Age imputer -> ColumnTransformer -> Classifier)
 lr_pipeline = Pipeline(steps=[
     ('age_imputer', lr_age_imputer),
-    ("rare_title", RareTitleGrouper(threshold=15)),
     ('preprocessor', lr_column_transformer),
     ('classifier', lr_classifier)
 ])
@@ -184,7 +156,7 @@ rf_categorical_transformer = Pipeline(steps=[
 # Random Forest column transformer
 rf_column_transformer = ColumnTransformer(
     transformers=[
-        ('num', rf_numeric_transformer, NUMERIC_FEATURES),
+        ('num', rf_numeric_transformer, TREE_NUMERIC_FEATURES),
         ('bin', rf_binary_transformer, BINARY_FEATURES),
         ('cat', rf_categorical_transformer, CATEGORICAL_FEATURES)
     ],
@@ -201,7 +173,6 @@ rf_classifier = RandomForestClassifier(
 # Random Forest pipeline (Age imputer -> ColumnTransformer -> Classifier)
 rf_pipeline = Pipeline(steps=[
     ('age_imputer', rf_age_imputer),
-    ("rare_title", RareTitleGrouper(threshold=15)),
     ('preprocessor', rf_column_transformer),
     ('classifier', rf_classifier)
 ])
@@ -238,7 +209,7 @@ lgbm_categorical_transformer = Pipeline(steps=[
 # LightGBM column transformer
 lgbm_column_transformer = ColumnTransformer(
     transformers=[
-        ('num', lgbm_numeric_transformer, NUMERIC_FEATURES),
+        ('num', lgbm_numeric_transformer, TREE_NUMERIC_FEATURES),
         ('bin', lgbm_binary_transformer, BINARY_FEATURES),
         ('cat', lgbm_categorical_transformer, CATEGORICAL_FEATURES)
     ],
@@ -258,7 +229,6 @@ lgbm_classifier = lgb.LGBMClassifier(
 # LightGBM pipeline (Age imputer -> ColumnTransformer -> Classifier)
 lgbm_pipeline = Pipeline(steps=[
     ('age_imputer', lgbm_age_imputer),
-    ("rare_title", RareTitleGrouper(threshold=15)),
     ('preprocessor', lgbm_column_transformer),
     ('classifier', lgbm_classifier)
 ])
@@ -288,8 +258,4 @@ CLASSIFIERS = {
 
 IMPUTERS = {
     'age': GroupedMedianAgeImputer
-}
-
-TRANSFORMERS = {
-    'rare_title_grouper': RareTitleGrouper
 }
