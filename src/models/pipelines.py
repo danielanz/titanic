@@ -23,7 +23,7 @@ import lightgbm as lgb
 # =============================================================================
 
 LR_NUMERIC_FEATURES = ['age', 'family_size', 'fare_per_person', 'ticket_frequency']
-TREE_NUMERIC_FEATURES = ['age', 'family_size', 'fare_per_person', 'sibsp', 'parch', 'ticket_frequency']
+TREE_NUMERIC_FEATURES = ['age', 'family_size', 'fare', 'fare_per_person', 'sibsp', 'parch', 'ticket_frequency']
 BINARY_FEATURES = ['sex', 'has_cabin', 'is_female_or_child', 'is_alone']
 CATEGORICAL_FEATURES = ['pclass', 'embarked', 'title', 'sex_pclass', 'deck']
 

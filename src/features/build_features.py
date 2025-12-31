@@ -60,7 +60,7 @@ def create_is_female_or_child(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with 'is_female_or_child' column added
     """
-    df['is_female_or_child'] = ((df['Sex'] == 'female') | (df['Title'] == 'Master')).astype(int)
+    df['is_female_or_child'] = ((df['Sex'] ==  1) | (df['Title'] == 'Master')).astype(int)
     return df
 
 
@@ -134,6 +134,7 @@ def apply_log1p_transformation(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with log-transformed 'fare_per_person'
     """
+    df['Fare'] = np.log1p(df['Fare'])
     df['fare_per_person'] = np.log1p(df['fare_per_person'])
     return df
 
@@ -182,7 +183,7 @@ def drop_redundant_features(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with redundant features removed
     """
-    cols_to_drop = ['Fare', 'Cabin', 'Name', 'PassengerId', 'Ticket']
+    cols_to_drop = ['Cabin', 'Name', 'PassengerId', 'Ticket']
     existing_cols = [col for col in cols_to_drop if col in df.columns]
     if existing_cols:
         df = df.drop(columns=existing_cols)
